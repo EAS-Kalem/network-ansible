@@ -46,7 +46,6 @@
     flush: yes
   with_items: [ 'INPUT', 'OUTPUT', 'PREROUTING', 'POSTROUTING' ]
   
-
 - iptables:
     chain: mangle
     chain_management: true
