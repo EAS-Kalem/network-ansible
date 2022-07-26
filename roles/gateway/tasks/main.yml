@@ -1,0 +1,104 @@
+---
+- name: python defaults
+  ansible.builtin.blockinfile:
+     path: /usr/bin/python
+     block: | 
+      ansible_python_interpreter=/usr/bin/python3
+
+- name: subscription-manager refresh
+  command: subscription-manager refresh
+
+- name: install iptables-services
+  command: yum install -y iptables-services
+
+- name: edit /etc/sysconfig/network/
+  ansible.builtin.blockinfile:
+     path: /etc/sysconfig/network
+     block: |
+      networking = enable NAT
+      gateway: 192.168.1.178
+
+- name: edit and create ens160
+  blockinfile:
+    dest:  /etc/sysconfig/network-scripts/ifcfg-ens160
+    block: |
+      GATEWAY=192.168.1.178
+    insertafter: EOF
+    create: yes
+
+- name: Iptables flush 
+  ansible.builtin.iptables:
+    chain: '{{ item }}'
+    flush: yes
+  with_items: [ 'INPUT', 'OUTPUT']
+
+- name: Iptables flush nat
+  ansible.builtin.iptables:
+    table: nat
+    chain: '{{ item }}'
+    flush: yes
+  with_items: [ 'INPUT', 'OUTPUT', 'PREROUTING', 'POSTROUTING' ]
+
+- name: Iptables flush mangle
+  ansible.builtin.iptables:
+    table: mangle
+    chain: '{{ item }}'
+    flush: yes
+  with_items: [ 'INPUT', 'OUTPUT', 'PREROUTING', 'POSTROUTING' ]
+  
+- name: Delete Iptables 
+  command: iptables -X
+
+- name: Delete Iptables nat
+  command: iptables -t nat -X
+
+- name: Delete Iptables mangle
+  command: iptables -t mangle -X
+
+- name: IP tables rules 1
+  command: iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+
+- name: IP tables rules 2
+  command: iptables -A FORWARD -i eth1 -j ACCEPT
+
+# - name: IP tables rules 1
+#   ansible.builtin.iptables:
+#     chain: FORWARD
+#     dst_range: 10.0.1.1
+#     jump: ACCEPT
+
+# - name: IP tables rules 2
+#   ansible.builtin.iptables:
+#     table: nat
+#     chain: POSTROUTING
+#     dst_range: 192.168.1.178
+#     jump: MASQUERADE
+
+- name: Enable ip forwarding 1
+  ansible.builtin.blockinfile:
+     path: /etc/sysctl.conf
+     block: |
+      net.ipv4.ip_forward = 1
+     insertafter: EOF
+     create: yes
+
+- name: Enable ip forwarding 2
+  ansible.posix.sysctl:
+      name: net.ipv4.ip_forward
+      value: '1'
+      sysctl_set: yes
+      state: present
+      reload: yes
+
+- name: save ip forwarding 1
+  command: sudo sysctl -p
+
+- name: save iptables
+  command: iptables-save
+  become: true
+  
+- name: restart iptables
+  command: service iptables restart
+
+- name: restart conn
+  command: nmcli connection reload && nmcli connection up ens160 && ifup ens160 
