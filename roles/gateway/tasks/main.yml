@@ -16,13 +16,13 @@
      path: /etc/sysconfig/network
      block: |
       networking = enable NAT
-      gateway: 192.168.1.178
+      gateway: 192.168.5.26
 
-- name: edit and create ens160
+- name: edit ens224
   blockinfile:
-    dest:  /etc/sysconfig/network-scripts/ifcfg-ens160
+    dest:  /etc/sysconfig/network-scripts/ifcfg-ens224
     block: |
-      GATEWAY=192.168.1.178
+      GATEWAY=192.168.5.26
     insertafter: EOF
     create: yes
 
@@ -46,33 +46,29 @@
     flush: yes
   with_items: [ 'INPUT', 'OUTPUT', 'PREROUTING', 'POSTROUTING' ]
   
-- name: Delete Iptables 
-  command: iptables -X
 
-- name: Delete Iptables nat
-  command: iptables -t nat -X
+- iptables:
+    chain: mangle
+    chain_management: true
+    state: absent
 
-- name: Delete Iptables mangle
-  command: iptables -t mangle -X
+- iptables:
+    chain: nat
+    chain_management: true
+    state: absent
 
 - name: IP tables rules 1
-  command: iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+  ansible.builtin.iptables:
+    chain: FORWARD
+    in_interface: ens160
+    jump: ACCEPT
 
 - name: IP tables rules 2
-  command: iptables -A FORWARD -i eth1 -j ACCEPT
-
-# - name: IP tables rules 1
-#   ansible.builtin.iptables:
-#     chain: FORWARD
-#     dst_range: 10.0.1.1
-#     jump: ACCEPT
-
-# - name: IP tables rules 2
-#   ansible.builtin.iptables:
-#     table: nat
-#     chain: POSTROUTING
-#     dst_range: 192.168.1.178
-#     jump: MASQUERADE
+  ansible.builtin.iptables:
+    table: nat
+    chain: POSTROUTING
+    out_interface: ens192
+    jump: MASQUERADE
 
 - name: Enable ip forwarding 1
   ansible.builtin.blockinfile:

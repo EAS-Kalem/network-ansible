@@ -31,7 +31,7 @@ platforms:
       - name: VM Network # is a port group to be assigned to an instance
         type: dhcp
       - name: kalem # is a port group to be assigned to an instance
-        ip: 192.168.1.178
+        ip: 10.0.0.1
         netmask: 255.255.255.0
     group: gateway
 provisioner:
