@@ -1,14 +1,17 @@
 ---
 dependency:
   name: galaxy
+  options:
+    ignore-certs: True
+    ignore-errors: True
 driver:
   name: vmware
-  vcenter_hostname: $(VCENTRE_HOSTNAME)
-  vcenter_username: $(VCENTRE_USERNAME)
-  vcenter_password: $(VCENTRE_PASSWORD)
+  vcenter_hostname: ${VCENTER_HOSTNAME}
+  vcenter_username: ${VCENTER_USERNAME}
+  vcenter_password: ${VCENTER_PASSWORD}
   validate_certs: false
   datacenter: Cardiff
-  esxi_hostname: $(ESXI_HOSTNAME)
+  esxi_hostname: ${ESXI_HOSTNAME}
   folder: /Ansible/molecule
   vm_username: root
   vm_password: Renegade187!
@@ -30,12 +33,15 @@ platforms:
     networks:
       - name: VM Network # is a port group to be assigned to an instance
         type: dhcp
+        start_connected: true
+        connected: true
       - name: kalem # is a port group to be assigned to an instance
         ip: 10.0.0.1
         netmask: 255.255.255.0
     group: gateway
 provisioner:
   name: ansible
+  log: true
   env:
     ANSIBLE_ROLES_PATH: "../../roles"
   playbooks:

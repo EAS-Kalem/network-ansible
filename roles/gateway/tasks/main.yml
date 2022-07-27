@@ -46,6 +46,14 @@
     flush: yes
   with_items: [ 'INPUT', 'OUTPUT', 'PREROUTING', 'POSTROUTING' ]
   
+- name: delete 
+  command: iptables -X
+- name: delete
+  command: iptables -t nat -X
+
+- name: delete
+  command: iptables -t mangle -X
+  
 - iptables:
     chain: mangle
     chain_management: true
