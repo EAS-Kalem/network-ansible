@@ -15,14 +15,13 @@
   ansible.builtin.blockinfile:
      path: /etc/sysconfig/network
      block: |
-      networking = enable NAT
-      gateway: 192.168.5.45
+      GATEWAY=192.168.4.22
 
 - name: edit ens224
   blockinfile:
     dest:  /etc/sysconfig/network-scripts/ifcfg-ens224
     block: |
-      GATEWAY=192.168.5.45
+      GATEWAY=192.168.4.22
     insertafter: EOF
     create: yes
 
