@@ -1,2 +1,56 @@
 ---
-# tasks file for dhcp
+- name: task
+  ansible.builtin.yum:
+  command: yum install dhcp-server
+
+- name: Update DHCP conf
+  ansible.builtin.blockinfile:
+    path: /etc/dhcp/dhcpd.conf 
+    block: |
+      subnet 192.168.1.0 netmask 255.255.255.0 {
+      option routers                  192.168.1.254;
+      option subnet-mask              255.255.255.0;
+      option domain-search              "example.com";
+      option domain-name-servers       192.168.1.1;
+      option time-offset              -18000;   
+      range                 192.168.1.10 192.168.1.100;
+      }
+
+      default-lease-time 600;
+      max-lease-time 7200;
+      option subnet-mask 255.255.255.0;
+      option broadcast-address 192.168.1.255;
+      option routers 192.168.1.254;
+      option domain-name-servers 192.168.1.1, 192.168.1.2;
+      option domain-search "example.com";
+      subnet 192.168.1.0 netmask 255.255.255.0 {
+      range 192.168.1.10 192.168.1.100;
+      }
+      
+      host apex {
+      option host-name "apex.example.com";
+      hardware ethernet 00:A0:78:8E:9E:AA;
+      fixed-address 192.168.1.4;
+      }
+      
+- name: start dhcpd
+  command: systemctl start dhcpd
+
+- ansible.posix.firewalld:
+    service: dhcp
+    permanent: yes
+    state: enabled
+
+- name: reload firewall
+  command: firewall-cmd --reload
+
+- name: Update DHCP conf
+  ansible.builtin.blockinfile:
+    path: /etc/sysconfig/network-script/ifcfg-ens160
+    block: | 
+
+- name: ifdown + ifup NIC
+  command: ifdown ens160 && ifup ens160
+
+- name: start DHCPd
+  command: systemctl start dhcpd
