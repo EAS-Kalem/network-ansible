@@ -11,13 +11,17 @@
 - name: install iptables-services
   command: yum install -y iptables-services
 
-- name: edit /etc/sysconfig/network/
+- name: delete /etc/sysconfig/network/
+  command: sudo rm -rf /etc/sysconfig/network
+
+- name: edit /etc/sysconfig/network
   ansible.builtin.blockinfile:
      path: /etc/sysconfig/network
      block: |
       NETWORKING=yes 
       HOSTNAME=nat 
       GATEWAY={{ hostvars['gateway'].ansible_host }}
+     create: yes
 
 - name: edit ens224
   blockinfile:
@@ -45,65 +49,32 @@
     - "nat"
     - "mangle"
 
-# - name: Iptables flush 
-#   ansible.builtin.iptables:
-#     chain: '{{ item }}'
-#     flush: yes
-#   with_items: [ 'INPUT', 'OUTPUT']
+# - name: iptables rule 1
+#   command: iptables -t nat -A POSTROUTING -o ens192 -j MASQUERADE
 
-# - name: Iptables flush nat
-#   ansible.builtin.iptables:
-#     table: nat
-#     chain: '{{ item }}'
-#     flush: yes
-#   with_items: [ 'INPUT', 'OUTPUT', 'PREROUTING', 'POSTROUTING' ]
+# - name: iptables rule 2
+#   command: iptables -A FORWARD -i ens224 -j ACCEPT
 
-# - name: Iptables flush mangle
-#   ansible.builtin.iptables:
-#     table: mangle
-#     chain: '{{ item }}'
-#     flush: yes
-#   with_items: [ 'INPUT', 'OUTPUT', 'PREROUTING', 'POSTROUTING' ]
-  
-# - name: delete 
-#   command: iptables -X
-
-# - name: delete
-#   command: iptables -t nat -X
-
-# - name: delete
-#   command: iptables -t mangle -X
-  
-# - iptables:
-#     chain: mangle
-#     chain_management: true
-#     state: absent
-
-# - iptables:
-#     chain: nat
-#     chain_management: true
-#     state: absent
-
-- name: IP tables rules 1
+- name: Iptables IP forwarding and masquerading
   ansible.builtin.iptables:
-    chain: FORWARD
-    in_interface: ens224
-    jump: ACCEPT
-
-- name: IP tables rules 2
-  ansible.builtin.iptables:
-    table: nat
     chain: POSTROUTING
     out_interface: ens192
     jump: MASQUERADE
+    table: nat
 
-- name: Enable ip forwarding 1
-  ansible.builtin.blockinfile:
-     path: /etc/sysctl.conf
-     block: |
-      net.ipv4.ip_forward = 1
-     insertafter: EOF
-     create: yes
+- name: Iptables IP forwarding and masquerading
+  ansible.builtin.iptables:
+    chain: FORWARD
+    in_interface: ens224    
+    jump: ACCEPT
+
+# - name: Enable ip forwarding 1
+#   ansible.builtin.blockinfile:
+#      path: /etc/sysctl.conf
+#      block: |
+#       net.ipv4.ip_forward = 1
+#      insertafter: EOF
+#      create: yes
 
 - name: Enable ip forwarding 2
   ansible.posix.sysctl:
@@ -117,7 +88,7 @@
   command: sudo sysctl -p
 
 - name: save iptables
-  command: iptables-save
+  command: service iptables save
   become: true
   
 - name: restart iptables
