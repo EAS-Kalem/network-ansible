@@ -1,35 +1,46 @@
 ---
-- name: task
-  ansible.builtin.yum:
-  command: yum install dhcp-server
+
+- name: subscription-manager refresh
+  command: subscription-manager refresh
+
+- name: install dhcp
+  command: yum -y install dhcp
+
+# - name: install dhcp
+#   ansible.builtin.yum:
+#     name: dhcp
+
+- name: Echo my_env_var
+  shell: "echo $DOMAIN_NAME"
+  environment:
+    DOMAIN_NAME: eas.local
 
 - name: Update DHCP conf
   ansible.builtin.blockinfile:
     path: /etc/dhcp/dhcpd.conf 
     block: |
-      subnet 192.168.1.102 netmask 255.255.255.0 {
-      option routers                  192.168.1.254;
-      option subnet-mask              255.255.255.0;
-      option domain-search              "????????.com";
-      option domain-name-servers       10.0.0.3;
-      option time-offset              -18000;   
-      range                 10.0.0.1 10.0.0.5;
+      option domain-name ${DOMAIN_NAME}; 
+      default-lease-time	86400;  
+      max-lease-time          172800; 
+      ddns-update-style none;
+      authoritative;
+      subnet 10.0.0.0 netmask 255.255.255.0 { 
+      range 10.0.0.10 10.0.0.50;  
+      option subnet-mask 255.255.255.0; 
+      option routers 10.0.0.1;   
+      option domain-name "eas.local";  
+      option domain-search "eas.local"; 
+      option domain-name-servers 10.0.0.3, 8.8.8.8, 8.8.4.4;   
+      }
+      host gateway-node {
+        hardware ethernet 00:50:56:87:12:b5;    
+        fixed-address 10.0.0.1;     
       }
 
-      default-lease-time 600;
-      max-lease-time 7200;
-      option subnet-mask 255.255.255.0;
-      option broadcast-address 192.168.1.255;
-      option routers 192.168.1.254;
-      option domain-name-servers 192.168.1.1, 192.168.1.2;
-      option domain-search "example.com";
-     
-      
-      host dns {
-      option host-name "apex.example.com";
-      hardware ethernet 00:A0:78:8E:9E:AA;
-      fixed-address 192.168.1.4;
-      }
+      #   host DNS-node { 
+      #   hardware ethernet 00:20:56:87:19:b5;   
+      #   fixed-address 10.0.0.3;  
+      # }
       
 - name: start dhcpd
   command: systemctl start dhcpd
@@ -42,13 +53,14 @@
 - name: reload firewall
   command: firewall-cmd --reload
 
-- name: Update DHCP conf
-  ansible.builtin.blockinfile:
-    path: /etc/sysconfig/network-script/ifcfg-ens160
-    block: | 
-
 - name: ifdown + ifup NIC
-  command: ifdown ens160 && ifup ens160
+  command: ifdown ens224 && ifup ens224
 
 - name: start DHCPd
-  command: systemctl start dhcpd
+  command: systemctl start dhcp
+
+- name: start DHCPd
+  command: firewall-cmd --add-service=dhcp --permanent
+
+- name: start DHCPd
+  command: firewall-cmd --reload
